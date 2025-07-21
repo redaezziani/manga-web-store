@@ -24,6 +24,7 @@
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^10.0.0",
     "@nestjs/platform-express": "^10.4.19",
+    "@nestjs/swagger": "^11.2.0",
     "@prisma/client": "^6.12.0",
     "@types/streamifier": "^0.1.2",
     "class-transformer": "^0.5.1",

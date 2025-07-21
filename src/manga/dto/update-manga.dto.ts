@@ -2,14 +2,15 @@ import { IsString, IsOptional, IsArray, IsBoolean } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
-export class CreateMangaDto {
+export class UpdateMangaDto {
   @ApiProperty({
     description: 'Title of the manga',
-    example: 'One Piece',
-    required: true,
+    example: 'One Piece Updated',
+    required: false,
   })
+  @IsOptional()
   @IsString()
-  title: string;
+  title?: string;
 
   @ApiProperty({
     description: 'Author of the manga',
@@ -22,7 +23,7 @@ export class CreateMangaDto {
 
   @ApiProperty({
     description: 'Description of the manga story and plot',
-    example: 'Epic adventure story about pirates searching for the ultimate treasure known as One Piece. Follow Monkey D. Luffy and his crew as they navigate the Grand Line, facing powerful enemies and forming unbreakable bonds.',
+    example: 'Updated epic adventure story about pirates searching for the ultimate treasure.',
     required: false,
   })
   @IsOptional()
@@ -31,7 +32,7 @@ export class CreateMangaDto {
 
   @ApiProperty({
     description: 'URL of the manga cover image',
-    example: 'https://example.com/covers/one-piece.jpg',
+    example: 'https://example.com/covers/one-piece-updated.jpg',
     required: false,
   })
   @IsOptional()
@@ -40,8 +41,7 @@ export class CreateMangaDto {
 
   @ApiProperty({
     description: 'Whether the manga is available for purchase',
-    example: true,
-    default: true,
+    example: false,
     required: false,
   })
   @IsOptional()
@@ -51,11 +51,11 @@ export class CreateMangaDto {
     if (typeof value === 'string') return value.toLowerCase() === 'true';
     return false;
   })
-  isAvailable?: boolean = true;
+  isAvailable?: boolean;
 
   @ApiProperty({
     description: 'Array of category IDs to associate with the manga',
-    example: ['category-id-1', 'category-id-2'],
+    example: ['category-id-1', 'category-id-3'],
     type: [String],
     required: false,
   })
