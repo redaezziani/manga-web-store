@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   
+  nameAr      String   
+  slug        String   @unique
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  mangas      Manga[]  @relation("MangaCategories")
+}
+
+model Manga {
+  id           String       @id @default(cuid())
+  title        String
+  author       String?
+  description  String?      @db.Text
+  coverImage   String?
+  isAvailable  Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  categories   Category[]   @relation("MangaCategories")
+  volumes      Volume[]
+}
+
+model Volume {
+  id          String   @id @default(cuid())
+  volumeNumber Int
+  price       Float
+  discount    Float    @default(0)
+  stock       Int      @default(0)
+  isAvailable Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  manga       Manga    @relation(fields: [mangaId], references: [id])
+  mangaId     String
+
+  previewImages PreviewImage[]
+}
+
+model PreviewImage {
+  id        String   @id @default(cuid())
+  url       String
+
+  volume    Volume   @relation(fields: [volumeId], references: [id])
+  volumeId  String
+}
