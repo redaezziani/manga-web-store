@@ -10,7 +10,14 @@ import {
   UseGuards,
   HttpStatus,
   HttpCode,
+  ParseIntPipe,
+  ParseFloatPipe,
+  ParseBoolPipe,
+  DefaultValuePipe,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
   ApiOperation,
@@ -19,9 +26,10 @@ import {
   ApiBody,
   ApiParam,
   ApiQuery,
+  ApiConsumes,
 } from '@nestjs/swagger';
 import { VolumeService } from './volume.service';
-import { CreateVolumeDto, UpdateVolumeDto, AddPreviewImageDto } from './dto/volume.dto';
+import { CreateVolumeDto, UpdateVolumeDto, AddPreviewImageDto, CreateVolumeData, UpdateVolumeData } from './dto/volume.dto';
 import { 
   VolumeResponseDto, 
   VolumeListItemDto, 
@@ -30,18 +38,23 @@ import {
 } from './dto/volume-response.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PaginatedResponse } from '../common/utils/pagination.utils';
+import { CloudinaryService } from '../storage/cloudinary.service';
 
 @Controller('volumes')
 @ApiTags('Volumes')
 export class VolumeController {
-  constructor(private readonly volumeService: VolumeService) {}
+  constructor(
+    private readonly volumeService: VolumeService,
+    private readonly cloudinaryService: CloudinaryService,
+  ) {}
 
   @Post()
 //   @UseGuards(JwtAuthGuard)
 //   @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
   @ApiOperation({
     summary: 'Create volume',
-    description: 'Create a new manga volume (Admin only)',
+    description: 'Create a new manga volume with optional cover image (Admin only)',
   })
   @ApiBody({ type: CreateVolumeDto })
   @ApiResponse({
@@ -62,9 +75,29 @@ export class VolumeController {
     description: 'Volume number already exists for this manga',
   })
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() createVolumeDto: CreateVolumeDto): Promise<VolumeApiResponseDto<VolumeResponseDto>> {
+  @UseInterceptors(FileInterceptor('coverImageFile'))
+  async create(
+    @Body() createVolumeDto: CreateVolumeDto,
+    @UploadedFile() coverImage?: Express.Multer.File,
+  ): Promise<VolumeApiResponseDto<VolumeResponseDto>> {
     try {
-      const volume = await this.volumeService.create(createVolumeDto);
+      
+      
+      // Prepare data for service with cover image URL if provided
+      const volumeData: CreateVolumeData = { ...createVolumeDto };
+      
+      // Upload cover image if provided
+      if (coverImage) {
+        const uploadResult = await this.cloudinaryService.uploadFile(
+          coverImage,
+          'volume-covers',
+        );
+
+        console.log('Volume cover image uploaded:', uploadResult);
+        volumeData.coverImage = uploadResult.secure_url;
+      }
+
+      const volume = await this.volumeService.create(volumeData);
       return {
         success: true,
         message: 'Volume created successfully',
@@ -160,22 +193,26 @@ export class VolumeController {
     },
   })
   async findAll(
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
     @Query('mangaId') mangaId?: string,
     @Query('isAvailable') isAvailable?: boolean,
-    @Query('minPrice') minPrice?: number,
-    @Query('maxPrice') maxPrice?: number,
+    @Query('minPrice') minPrice?: string,
+    @Query('maxPrice') maxPrice?: string,
     @Query('inStock') inStock?: boolean,
   ): Promise<VolumeApiResponseDto<PaginatedResponse<VolumeListItemDto>>> {
     try {
+      // Parse numeric parameters safely
+      const parsedMinPrice = minPrice && !isNaN(parseFloat(minPrice)) ? parseFloat(minPrice) : undefined;
+      const parsedMaxPrice = maxPrice && !isNaN(parseFloat(maxPrice)) ? parseFloat(maxPrice) : undefined;
+      
       const volumes = await this.volumeService.findAll(
         page,
         limit,
         mangaId,
         isAvailable,
-        minPrice,
-        maxPrice,
+        parsedMinPrice,
+        parsedMaxPrice,
         inStock,
       );
       return {
@@ -267,9 +304,10 @@ export class VolumeController {
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
   @ApiOperation({
     summary: 'Update volume',
-    description: 'Update a manga volume (Admin only)',
+    description: 'Update a manga volume with optional cover image (Admin only)',
   })
   @ApiParam({
     name: 'id',
@@ -290,12 +328,28 @@ export class VolumeController {
     status: 409,
     description: 'Volume number already exists for this manga',
   })
+  @UseInterceptors(FileInterceptor('coverImageFile'))
   async update(
     @Param('id') id: string,
     @Body() updateVolumeDto: UpdateVolumeDto,
+    @UploadedFile() coverImage?: Express.Multer.File,
   ): Promise<VolumeApiResponseDto<VolumeResponseDto>> {
     try {
-      const volume = await this.volumeService.update(id, updateVolumeDto);
+      // Prepare data for service with cover image URL if provided
+      const volumeData: UpdateVolumeData = { ...updateVolumeDto };
+      
+      // Upload cover image if provided
+      if (coverImage) {
+        const uploadResult = await this.cloudinaryService.uploadFile(
+          coverImage,
+          'volume-covers',
+        );
+
+        console.log('Volume cover image uploaded for update:', uploadResult);
+        volumeData.coverImage = uploadResult.secure_url;
+      }
+
+      const volume = await this.volumeService.update(id, volumeData);
       return {
         success: true,
         message: 'Volume updated successfully',

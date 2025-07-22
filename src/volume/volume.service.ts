@@ -6,7 +6,7 @@ import {
   Logger
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
-import { CreateVolumeDto, UpdateVolumeDto, AddPreviewImageDto } from './dto/volume.dto';
+import { CreateVolumeDto, UpdateVolumeDto, AddPreviewImageDto, CreateVolumeData, UpdateVolumeData } from './dto/volume.dto';
 import { VolumeResponseDto, VolumeListItemDto, PreviewImageDto } from './dto/volume-response.dto';
 import { PaginatedResponse } from '../common/utils/pagination.utils';
 
@@ -16,7 +16,7 @@ export class VolumeService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createVolumeDto: CreateVolumeDto): Promise<VolumeResponseDto> {
+  async create(createVolumeDto: CreateVolumeData): Promise<VolumeResponseDto> {
     try {
       // Check if manga exists
       const manga = await this.prisma.manga.findUnique({
@@ -101,8 +101,17 @@ export class VolumeService {
       
       if (minPrice !== undefined || maxPrice !== undefined) {
         where.price = {};
-        if (minPrice !== undefined) where.price.gte = minPrice;
-        if (maxPrice !== undefined) where.price.lte = maxPrice;
+        if (minPrice !== undefined && !isNaN(minPrice) && minPrice >= 0) {
+          where.price.gte = minPrice;
+        }
+        if (maxPrice !== undefined && !isNaN(maxPrice) && maxPrice >= 0) {
+          where.price.lte = maxPrice;
+        }
+        
+        // If no valid price filters, remove the price condition
+        if (Object.keys(where.price).length === 0) {
+          delete where.price;
+        }
       }
       
       if (inStock) {
@@ -234,7 +243,7 @@ export class VolumeService {
     }
   }
 
-  async update(id: string, updateVolumeDto: UpdateVolumeDto): Promise<VolumeResponseDto> {
+  async update(id: string, updateVolumeDto: UpdateVolumeData): Promise<VolumeResponseDto> {
     try {
       // Check if volume exists
       const existingVolume = await this.prisma.volume.findUnique({

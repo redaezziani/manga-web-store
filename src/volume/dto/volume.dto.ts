@@ -2,6 +2,15 @@ import { IsString, IsInt, IsNumber, IsBoolean, IsOptional, Min, Max } from 'clas
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 
+// Internal interface for service layer that includes coverImage
+export interface CreateVolumeData extends Omit<CreateVolumeDto, 'coverImageFile'> {
+  coverImage?: string;
+}
+
+export interface UpdateVolumeData extends Omit<UpdateVolumeDto, 'coverImageFile'> {
+  coverImage?: string;
+}
+
 export class CreateVolumeDto {
   @ApiProperty({
     description: 'Manga ID this volume belongs to',
@@ -57,13 +66,12 @@ export class CreateVolumeDto {
   stock?: number = 0;
 
   @ApiProperty({
-    description: 'Volume cover image URL',
-    example: 'https://example.com/volume-cover.jpg',
+    type: 'string',
+    format: 'binary',
+    description: 'Volume cover image file',
     required: false,
   })
-  @IsOptional()
-  @IsString()
-  coverImage?: string;
+  coverImageFile?: any;
 
   @ApiProperty({
     description: 'Volume availability',
@@ -71,6 +79,12 @@ export class CreateVolumeDto {
     required: false,
   })
   @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      return value.toLowerCase() === 'true';
+    }
+    return value;
+  })
   @IsBoolean()
   isAvailable?: boolean = true;
 }
@@ -127,13 +141,12 @@ export class UpdateVolumeDto {
   stock?: number;
 
   @ApiProperty({
-    description: 'Volume cover image URL',
-    example: 'https://example.com/volume-cover.jpg',
+    type: 'string',
+    format: 'binary',
+    description: 'Volume cover image file',
     required: false,
   })
-  @IsOptional()
-  @IsString()
-  coverImage?: string;
+  coverImageFile?: any;
 
   @ApiProperty({
     description: 'Volume availability',
@@ -141,6 +154,12 @@ export class UpdateVolumeDto {
     required: false,
   })
   @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      return value.toLowerCase() === 'true';
+    }
+    return value;
+  })
   @IsBoolean()
   isAvailable?: boolean;
 }
