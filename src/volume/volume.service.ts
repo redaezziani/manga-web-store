@@ -47,6 +47,7 @@ export class VolumeService {
           price: createVolumeDto.price,
           discount: createVolumeDto.discount || 0,
           stock: createVolumeDto.stock || 0,
+          coverImage: createVolumeDto.coverImage,
           isAvailable: createVolumeDto.isAvailable ?? true,
         },
         include: {
@@ -169,6 +170,8 @@ export class VolumeService {
               author: true,
               coverImage: true,
               isAvailable: true,
+              categories: true,
+              
             }
           },
           previewImages: true
@@ -394,6 +397,7 @@ export class VolumeService {
       discount: volume.discount,
       finalPrice: Math.round(finalPrice * 100) / 100,
       stock: volume.stock,
+      coverImage: volume.coverImage,
       isAvailable: volume.isAvailable,
       createdAt: volume.createdAt,
       updatedAt: volume.updatedAt,
@@ -415,6 +419,7 @@ export class VolumeService {
       discount: volume.discount,
       finalPrice: Math.round(finalPrice * 100) / 100,
       stock: volume.stock,
+      coverImage: volume.coverImage,
       isAvailable: volume.isAvailable,
       manga: volume.manga,
       firstPreviewImage: volume.previewImages.length > 0 ? volume.previewImages[0].url : undefined

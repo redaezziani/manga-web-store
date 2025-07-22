@@ -86,6 +86,13 @@ export class VolumeResponseDto {
   stock: number;
 
   @ApiProperty({
+    description: 'Volume cover image URL',
+    example: 'https://example.com/volume-cover.jpg',
+    required: false,
+  })
+  coverImage?: string;
+
+  @ApiProperty({
     description: 'Volume availability',
     example: true,
   })
@@ -152,6 +159,13 @@ export class VolumeListItemDto {
     example: 50,
   })
   stock: number;
+
+  @ApiProperty({
+    description: 'Volume cover image URL',
+    example: 'https://example.com/volume-cover.jpg',
+    required: false,
+  })
+  coverImage?: string;
 
   @ApiProperty({
     description: 'Volume availability',

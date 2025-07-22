@@ -57,6 +57,15 @@ export class CreateVolumeDto {
   stock?: number = 0;
 
   @ApiProperty({
+    description: 'Volume cover image URL',
+    example: 'https://example.com/volume-cover.jpg',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  coverImage?: string;
+
+  @ApiProperty({
     description: 'Volume availability',
     example: true,
     required: false,
@@ -116,6 +125,15 @@ export class UpdateVolumeDto {
   @IsInt()
   @Min(0, { message: 'Stock must be at least 0' })
   stock?: number;
+
+  @ApiProperty({
+    description: 'Volume cover image URL',
+    example: 'https://example.com/volume-cover.jpg',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  coverImage?: string;
 
   @ApiProperty({
     description: 'Volume availability',

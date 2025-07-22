@@ -317,6 +317,7 @@ export class CartService {
           price: item.volume.price,
           discount: item.volume.discount,
           stock: item.volume.stock,
+          coverImage: item.volume.coverImage,
           isAvailable: item.volume.isAvailable,
           finalPrice,
           manga: item.volume.manga
