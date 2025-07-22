@@ -5,6 +5,9 @@ import { DatabaseModule } from './database/database.module';
 import { StorageModule } from './storage/storage.module';
 import { MangaModule } from './manga/manga.module';
 import { CommonModule } from './common/common.module';
+import { SmtpModule } from './smtp/smtp.module';
+import { AuthModule } from './auth/auth.module';
+import { CartModule } from './cart/cart.module';
 
 @Module({
   imports: [
@@ -14,6 +17,9 @@ import { CommonModule } from './common/common.module';
     CommonModule,
     DatabaseModule,
     StorageModule,
+    SmtpModule,
+    AuthModule,
+    CartModule,
     MangaModule,
   ],
   controllers: [AppController],
