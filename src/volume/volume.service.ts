@@ -171,6 +171,7 @@ export class VolumeService {
               coverImage: true,
               isAvailable: true,
               categories: true,
+              description: true,
               
             }
           },
