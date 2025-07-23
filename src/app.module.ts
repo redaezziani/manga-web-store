@@ -9,6 +9,7 @@ import { CommonModule } from './common/common.module';
 import { SmtpModule } from './smtp/smtp.module';
 import { AuthModule } from './auth/auth.module';
 import { CartModule } from './cart/cart.module';
+import { WishlistModule } from './wishlist/wishlist.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { CartModule } from './cart/cart.module';
     SmtpModule,
     AuthModule,
     CartModule,
+    WishlistModule,
     MangaModule,
     VolumeModule,
   ],
