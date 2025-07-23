@@ -135,6 +135,7 @@ export class VolumeService {
                 author: true,
                 coverImage: true,
                 isAvailable: true,
+                description: true,
               }
             },
             previewImages: {
@@ -394,6 +395,92 @@ export class VolumeService {
       }
       this.logger.error('Failed to remove preview image:', error);
       throw new BadRequestException('Failed to remove preview image');
+    }
+  }
+
+  async getRelatedVolumes(volumeId: string, limit: number = 10): Promise<VolumeListItemDto[]> {
+    try {
+      // First, find the volume to get its manga ID and categories
+      const volume = await this.prisma.volume.findUnique({
+        where: { id: volumeId },
+        include: {
+          manga: {
+            include: {
+              categories: true
+            }
+          }
+        }
+      });
+
+      if (!volume) {
+        throw new NotFoundException('Volume not found');
+      }
+
+      // Get category IDs from the volume's manga
+      const categoryIds = volume.manga.categories.map(cat => cat.id);
+
+      // Find related volumes from different manga with similar categories
+      const relatedVolumes = await this.prisma.volume.findMany({
+        where: {
+          AND: [
+            { isAvailable: true },
+            { manga: { isAvailable: true } },
+            { manga: { id: { not: volume.mangaId } } }, // Exclude same manga
+            {
+              OR: [
+                // Volumes from manga with similar categories
+                categoryIds.length > 0 ? {
+                  manga: {
+                    categories: {
+                      some: {
+                        id: { in: categoryIds }
+                      }
+                    }
+                  }
+                } : {},
+                // Or similar price range
+                {
+                  price: {
+                    gte: volume.price * 0.7, // 30% lower
+                    lte: volume.price * 1.3   // 30% higher
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        take: limit,
+        orderBy: [
+          // Prioritize volumes with more matching categories
+          { createdAt: 'desc' }
+        ],
+        include: {
+          manga: {
+            select: {
+              id: true,
+              title: true,
+              author: true,
+              coverImage: true,
+              isAvailable: true,
+              description: true,
+            }
+          },
+          previewImages: {
+            take: 1,
+            orderBy: { id: 'asc' }
+          }
+        }
+      });
+
+      this.logger.log(`Found ${relatedVolumes.length} related volumes for volume ${volumeId}`);
+
+      return relatedVolumes.map(volume => this.transformVolumeListItem(volume));
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error('Failed to get related volumes:', error);
+      throw new BadRequestException('Failed to get related volumes');
     }
   }
 

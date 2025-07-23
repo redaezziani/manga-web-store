@@ -518,4 +518,50 @@ export class VolumeController {
       };
     }
   }
+
+  @Get(':id/related')
+  @ApiOperation({
+    summary: 'Get related volumes',
+    description: 'Get volumes from different manga that are related to the specified volume (recommendations)',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Volume ID',
+    example: 'cm0x1y2z3...',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Number of related volumes to return',
+    example: 10,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Related volumes retrieved successfully',
+    type: [VolumeListItemDto],
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Volume not found',
+  })
+  async getRelatedVolumes(
+    @Param('id') volumeId: string,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ): Promise<VolumeApiResponseDto<VolumeListItemDto[]>> {
+    try {
+      const relatedVolumes = await this.volumeService.getRelatedVolumes(volumeId, limit);
+      return {
+        success: true,
+        message: 'Related volumes retrieved successfully',
+        data: relatedVolumes,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message,
+        data: null,
+      };
+    }
+  }
 }
