@@ -145,7 +145,8 @@ export class WishlistService {
               },
               volumes: {
                 select: {
-                  price: true
+                  price: true,
+                  coverImage: true,
                 }
               }
             }

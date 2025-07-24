@@ -22,6 +22,7 @@ export class CartService {
           cartItems: {
             include: {
               volume: {
+                
                 include: {
                   manga: {
                     select: {

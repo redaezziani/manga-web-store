@@ -436,4 +436,79 @@ export class AuthService {
       this.logger.error('Failed to log login attempt:', error);
     }
   }
+
+  async refreshToken(refreshToken: string, ipAddress?: string, userAgent?: string): Promise<LoginResponseDto> {
+    try {
+      // Verify the refresh token
+      const payload = await this.jwtService.verifyAsync(refreshToken, {
+        secret: this.configService.get('JWT_SECRET'),
+      });
+
+      // Find the refresh token in database
+      const storedToken = await this.prisma.refreshToken.findUnique({
+        where: { token: refreshToken },
+        include: { user: true }
+      });
+
+      if (!storedToken || storedToken.isRevoked || storedToken.expiresAt < new Date()) {
+        throw new UnauthorizedException('Invalid or expired refresh token');
+      }
+
+      // Check if user is still active
+      const user = storedToken.user;
+      if (user.status !== 'ACTIVE' && user.status !== 'PENDING_VERIFICATION') {
+        throw new UnauthorizedException('Account is suspended or inactive');
+      }
+
+      // Generate new tokens
+      const tokens = await this.generateTokens(user.id);
+
+      // Revoke the old refresh token
+      await this.prisma.refreshToken.update({
+        where: { id: storedToken.id },
+        data: {
+          isRevoked: true,
+          revokedAt: new Date(),
+        }
+      });
+
+      // Store new refresh token
+      await this.storeRefreshToken(user.id, tokens.refreshToken, ipAddress, userAgent);
+
+      // Clean up old refresh tokens
+      await this.cleanupRefreshTokens(user.id);
+
+      // Update last active timestamp
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { lastActiveAt: new Date() }
+      });
+
+      this.logger.log(`Token refreshed for user: ${user.email}`);
+
+      return {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        expiresIn: parseInt(this.configService.get('JWT_EXPIRES_IN', '3600')),
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          displayName: user.displayName,
+          avatar: user.avatar,
+          role: user.role,
+          status: user.status,
+          isEmailVerified: user.isEmailVerified,
+          createdAt: user.createdAt,
+        } as AuthUserDto
+      };
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      this.logger.error('Token refresh failed:', error);
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+  }
 }
