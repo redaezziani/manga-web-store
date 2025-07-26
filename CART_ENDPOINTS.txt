@@ -1,0 +1,311 @@
+MANGA WEB STORE - CART ENDPOINTS GUIDE
+=======================================
+
+Base URL: http://localhost:7000/api/cart
+Authentication: JWT Bearer Token Required (Login first!)
+
+=== 1. GET USER CART ===
+Endpoint: GET /cart
+Description: Retrieve the current user's shopping cart with all items and summary
+
+REQUEST:
+Headers:
+Authorization: Bearer YOUR_JWT_TOKEN
+
+RESPONSE (Success - 200):
+{
+  "success": true,
+  "message": "Cart retrieved successfully",
+  "data": {
+    "id": "cart123",
+    "userId": "user123",
+    "items": [
+      {
+        "id": "cartItem1",
+        "quantity": 2,
+        "subtotal": 17.98,
+        "volume": {
+          "id": "volume1",
+          "volumeNumber": 1,
+          "price": 9.99,
+          "discount": 0.1,
+          "stock": 50,
+          "coverImage": "https://example.com/volume1.jpg",
+          "isAvailable": true,
+          "finalPrice": 8.99,
+          "manga": {
+            "id": "manga1",
+            "title": "One Piece",
+            "author": "Eiichiro Oda",
+            "coverImage": "https://example.com/onepiece.jpg"
+          }
+        },
+        "createdAt": "2025-07-26T10:30:00.000Z",
+        "updatedAt": "2025-07-26T10:30:00.000Z"
+      }
+    ],
+    "summary": {
+      "totalItems": 2,
+      "uniqueItems": 1,
+      "subtotal": 19.98,
+      "totalDiscount": 1.99,
+      "total": 17.99
+    },
+    "createdAt": "2025-07-26T10:00:00.000Z",
+    "updatedAt": "2025-07-26T10:30:00.000Z"
+  }
+}
+
+=== 2. ADD ITEM TO CART ===
+Endpoint: POST /cart/add
+Description: Add a manga volume to the shopping cart
+
+REQUEST:
+Headers:
+Authorization: Bearer YOUR_JWT_TOKEN
+
+Body:
+{
+  "volumeId": "cm0x1y2z3...",
+  "quantity": 2                    // Optional, defaults to 1
+}
+
+RESPONSE (Success - 201):
+{
+  "success": true,
+  "message": "Item added to cart successfully",
+  "data": {
+    // Full cart response (same as GET /cart)
+    "id": "cart123",
+    "userId": "user123",
+    "items": [...],
+    "summary": {...}
+  }
+}
+
+RESPONSE (Error - 404):
+{
+  "success": false,
+  "message": "Volume not found",
+  "data": null
+}
+
+RESPONSE (Error - 400):
+{
+  "success": false,
+  "message": "Insufficient stock available",
+  "data": null
+}
+
+=== 3. UPDATE CART ITEM QUANTITY ===
+Endpoint: PUT /cart/update
+Description: Update the quantity of an existing cart item
+
+REQUEST:
+Headers:
+Authorization: Bearer YOUR_JWT_TOKEN
+
+Body:
+{
+  "cartItemId": "cm0x1y2z3...",
+  "quantity": 5
+}
+
+RESPONSE (Success - 200):
+{
+  "success": true,
+  "message": "Cart item updated successfully",
+  "data": {
+    // Full cart response (same as GET /cart)
+    "id": "cart123",
+    "userId": "user123",
+    "items": [...],
+    "summary": {...}
+  }
+}
+
+RESPONSE (Error - 404):
+{
+  "success": false,
+  "message": "Cart item not found",
+  "data": null
+}
+
+RESPONSE (Error - 400):
+{
+  "success": false,
+  "message": "Insufficient stock available",
+  "data": null
+}
+
+=== 4. REMOVE ITEM FROM CART ===
+Endpoint: DELETE /cart/remove/{cartItemId}
+Description: Remove a specific item from the shopping cart
+
+REQUEST:
+Headers:
+Authorization: Bearer YOUR_JWT_TOKEN
+
+URL Parameter:
+cartItemId: The ID of the cart item to remove
+
+Example: DELETE /cart/remove/cm0x1y2z3...
+
+RESPONSE (Success - 200):
+{
+  "success": true,
+  "message": "Item removed from cart successfully",
+  "data": {
+    // Full cart response (same as GET /cart)
+    "id": "cart123",
+    "userId": "user123",
+    "items": [...],
+    "summary": {...}
+  }
+}
+
+RESPONSE (Error - 404):
+{
+  "success": false,
+  "message": "Cart item not found",
+  "data": null
+}
+
+=== 5. CLEAR ENTIRE CART ===
+Endpoint: DELETE /cart/clear
+Description: Remove all items from the shopping cart
+
+REQUEST:
+Headers:
+Authorization: Bearer YOUR_JWT_TOKEN
+
+RESPONSE (Success - 200):
+{
+  "success": true,
+  "message": "Cart cleared successfully",
+  "data": {
+    "message": "Cart cleared successfully"
+  }
+}
+
+RESPONSE (Error - 404):
+{
+  "success": false,
+  "message": "Cart not found",
+  "data": null
+}
+
+=== 6. GET CART ITEM COUNT ===
+Endpoint: GET /cart/count
+Description: Get the total number of items in the user's cart (useful for cart badge)
+
+REQUEST:
+Headers:
+Authorization: Bearer YOUR_JWT_TOKEN
+
+RESPONSE (Success - 200):
+{
+  "success": true,
+  "message": "Cart count retrieved successfully",
+  "data": {
+    "count": 5
+  }
+}
+
+=== AUTHENTICATION REQUIREMENTS ===
+All cart endpoints require authentication! Include JWT token in Authorization header:
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+If not authenticated, you'll get:
+{
+  "statusCode": 401,
+  "message": "Unauthorized"
+}
+
+=== ERROR HANDLING ===
+Common HTTP Status Codes:
+- 200: Success
+- 201: Created (item added)
+- 400: Bad Request (validation errors, insufficient stock)
+- 401: Unauthorized (no token or invalid token)
+- 404: Not Found (volume/cart item not found)
+
+Error Response Format:
+{
+  "success": false,
+  "message": "Error description",
+  "data": null
+}
+
+=== CART ITEM STRUCTURE ===
+Each cart item contains:
+- id: Cart item unique ID
+- quantity: Number of items
+- subtotal: quantity × finalPrice
+- volume: Complete volume information including:
+  - Basic volume info (number, price, discount, stock)
+  - Final price after discount
+  - Manga information (title, author, cover)
+- createdAt/updatedAt: Timestamps
+
+=== CART SUMMARY ===
+Cart summary includes:
+- totalItems: Total quantity of all items
+- uniqueItems: Number of different volumes
+- subtotal: Total before discounts
+- totalDiscount: Total discount amount
+- total: Final amount to pay
+
+=== TESTING WITH CURL ===
+
+Get Cart:
+curl -X GET http://localhost:7000/api/cart \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+Add to Cart:
+curl -X POST http://localhost:7000/api/cart/add \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"volumeId":"volume123","quantity":2}'
+
+Update Quantity:
+curl -X PUT http://localhost:7000/api/cart/update \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"cartItemId":"cartItem123","quantity":5}'
+
+Remove Item:
+curl -X DELETE http://localhost:7000/api/cart/remove/cartItem123 \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+Clear Cart:
+curl -X DELETE http://localhost:7000/api/cart/clear \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+Get Item Count:
+curl -X GET http://localhost:7000/api/cart/count \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+=== VALIDATION RULES ===
+- volumeId: Must be a valid string
+- quantity: Must be integer ≥ 1
+- cartItemId: Must be a valid string
+- Stock validation: System checks available stock before adding/updating
+- User validation: Only cart owner can modify their cart
+
+=== BUSINESS LOGIC ===
+- Each user has one cart
+- Cart is created automatically when user adds first item
+- Prices are calculated with discounts applied
+- Stock is validated on every add/update operation
+- Cart persists until manually cleared or items are purchased
+- Prices are always current (recalculated on each request)
+
+=== FRONTEND INTEGRATION TIPS ===
+1. Call GET /cart/count on app load to show cart badge
+2. Call GET /cart when user opens cart page
+3. Use POST /cart/add when user clicks "Add to Cart"
+4. Use PUT /cart/update for quantity changes
+5. Use DELETE /cart/remove/{id} for item removal
+6. Use DELETE /cart/clear for "Clear Cart" functionality
+7. Always handle authentication errors and redirect to login
