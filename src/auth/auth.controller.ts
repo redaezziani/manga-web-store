@@ -16,7 +16,6 @@ import {
   ForgotPasswordDto,
   ResetPasswordDto,
   VerifyEmailDto,
-  RefreshTokenDto,
 } from './dto/auth.dto';
 import {
   AuthResponseDto,
@@ -280,58 +279,6 @@ export class AuthController {
       return {
         success: true,
         message: 'Password reset successful',
-        data: result,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message,
-        data: null,
-      };
-    }
-  }
-
-  @Post('refresh')
-  @ApiOperation({
-    summary: 'Refresh access token',
-    description: 'Generate new access and refresh tokens using a valid refresh token'
-  })
-  @ApiBody({ type: RefreshTokenDto })
-  @ApiResponse({
-    status: 200,
-    description: 'Token refreshed successfully',
-    type: LoginResponseDto,
-  })
-  @ApiResponse({ 
-    status: 401, 
-    description: 'Invalid or expired refresh token',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean', example: false },
-        message: { type: 'string', example: 'Invalid or expired refresh token' },
-        data: { type: 'null' }
-      }
-    }
-  })
-  @HttpCode(HttpStatus.OK)
-  async refreshToken(
-    @Body() refreshTokenDto: RefreshTokenDto,
-    @Req() req: Request
-  ): Promise<AuthResponseDto<LoginResponseDto>> {
-    try {
-      const ipAddress = req.ip || req.connection.remoteAddress;
-      const userAgent = req.get('User-Agent');
-      
-      const result = await this.authService.refreshToken(
-        refreshTokenDto.refreshToken, 
-        ipAddress, 
-        userAgent
-      );
-      
-      return {
-        success: true,
-        message: 'Token refreshed successfully',
         data: result,
       };
     } catch (error) {

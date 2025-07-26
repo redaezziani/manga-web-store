@@ -96,7 +96,6 @@ model User {
   // Relations
   emailVerifications EmailVerification[]
   passwordResets     PasswordReset[]
-  refreshTokens      RefreshToken[]
   loginHistory       LoginHistory[]
   userPreferences    UserPreferences?
   cart               Cart?
@@ -136,22 +135,6 @@ model PasswordReset {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("password_resets")
-}
-
-model RefreshToken {
-  id          String   @id @default(cuid())
-  userId      String
-  token       String   @unique
-  expiresAt   DateTime
-  isRevoked   Boolean  @default(false)
-  revokedAt   DateTime?
-  createdAt   DateTime @default(now())
-  ipAddress   String?
-  userAgent   String?
-
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("refresh_tokens")
 }
 
 model LoginHistory {

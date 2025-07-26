@@ -70,16 +70,10 @@ export class AuthUserDto {
 
 export class LoginResponseDto {
   @ApiProperty({
-    description: 'JWT access token',
+    description: 'JWT token',
     example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
   })
-  accessToken: string;
-
-  @ApiProperty({
-    description: 'JWT refresh token',
-    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-  })
-  refreshToken: string;
+  token: string;
 
   @ApiProperty({
     description: 'Token expiration time in seconds',
