@@ -205,3 +205,44 @@ export class VolumeApiResponseDto<T = any> {
   })
   data: T | null;
 }
+
+export class FilterCategoryDto {
+  @ApiProperty({
+    description: 'Category ID',
+    example: 'cm0x1y2z3...',
+  })
+  id: string;
+
+  @ApiProperty({
+    description: 'Category name',
+    example: 'Action',
+  })
+  name: string;
+
+  @ApiProperty({
+    description: 'Category name in Arabic',
+    example: 'أكشن',
+  })
+  nameAr: string;
+
+  @ApiProperty({
+    description: 'Category slug',
+    example: 'action',
+  })
+  slug: string;
+}
+
+export class FilterDataResponseDto {
+  @ApiProperty({
+    description: 'List of available categories',
+    type: [FilterCategoryDto],
+  })
+  categories: FilterCategoryDto[];
+
+  @ApiProperty({
+    description: 'List of available authors',
+    type: [String],
+    example: ['Eiichiro Oda', 'Masashi Kishimoto', 'Akira Toriyama'],
+  })
+  authors: string[];
+}

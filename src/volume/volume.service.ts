@@ -83,7 +83,9 @@ export class VolumeService {
     isAvailable?: boolean,
     minPrice?: number,
     maxPrice?: number,
-    inStock?: boolean
+    inStock?: boolean,
+    authors?: string[],
+    categories?: string[]
   ): Promise<PaginatedResponse<VolumeListItemDto>> {
     try {
       const skip = (page - 1) * limit;
@@ -116,6 +118,30 @@ export class VolumeService {
       
       if (inStock) {
         where.stock = { gt: 0 };
+      }
+
+      // Filter by authors
+      if (authors && authors.length > 0) {
+        if (!where.manga) {
+          where.manga = {};
+        }
+        where.manga.author = {
+          in: authors
+        };
+      }
+
+      // Filter by categories
+      if (categories && categories.length > 0) {
+        if (!where.manga) {
+          where.manga = {};
+        }
+        where.manga.categories = {
+          some: {
+            id: {
+              in: categories
+            }
+          }
+        };
       }
 
       const [volumes, totalCount] = await Promise.all([
@@ -481,6 +507,70 @@ export class VolumeService {
       }
       this.logger.error('Failed to get related volumes:', error);
       throw new BadRequestException('Failed to get related volumes');
+    }
+  }
+
+  async getFilterData(): Promise<{ categories: Array<{ id: string; name: string; nameAr: string; slug: string }>, authors: string[] }> {
+    try {
+      // Get all categories that have mangas with available volumes
+      const categories = await this.prisma.category.findMany({
+        where: {
+          mangas: {
+            some: {
+              volumes: {
+                some: {
+                  isAvailable: true
+                }
+              },
+              isAvailable: true
+            }
+          }
+        },
+        select: {
+          id: true,
+          name: true,
+          nameAr: true,
+          slug: true
+        },
+        orderBy: {
+          name: 'asc'
+        }
+      });
+
+      // Get all unique authors from mangas that have available volumes
+      const authorsData = await this.prisma.manga.findMany({
+        where: {
+          volumes: {
+            some: {
+              isAvailable: true
+            }
+          },
+          isAvailable: true,
+          author: {
+            not: null
+          }
+        },
+        select: {
+          author: true
+        },
+        distinct: ['author']
+      });
+
+      // Extract unique authors and filter out null values
+      const authors = authorsData
+        .map(manga => manga.author)
+        .filter((author): author is string => author !== null)
+        .sort();
+
+      this.logger.log(`Filter data retrieved: ${categories.length} categories, ${authors.length} authors`);
+
+      return {
+        categories,
+        authors
+      };
+    } catch (error) {
+      this.logger.error('Failed to get filter data:', error);
+      throw new BadRequestException('Failed to retrieve filter data');
     }
   }
 

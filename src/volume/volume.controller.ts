@@ -34,7 +34,8 @@ import {
   VolumeResponseDto, 
   VolumeListItemDto, 
   VolumeApiResponseDto,
-  PreviewImageDto 
+  PreviewImageDto,
+  FilterDataResponseDto
 } from './dto/volume-response.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PaginatedResponse } from '../common/utils/pagination.utils';
@@ -112,6 +113,39 @@ export class VolumeController {
     }
   }
 
+  @Get('filter-data')
+  @ApiOperation({
+    summary: 'Get filter data',
+    description: 'Get categories and authors data for filtering volumes',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Filter data retrieved successfully',
+    type: FilterDataResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Failed to retrieve filter data',
+  })
+  @HttpCode(HttpStatus.OK)
+  async getFilterData(): Promise<VolumeApiResponseDto<FilterDataResponseDto>> {
+    try {
+      const filterData = await this.volumeService.getFilterData();
+      
+      return {
+        success: true,
+        message: 'Filter data retrieved successfully',
+        data: filterData,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message,
+        data: null,
+      };
+    }
+  }
+
   @Get()
   @ApiOperation({
     summary: 'Get all volumes',
@@ -161,6 +195,20 @@ export class VolumeController {
     type: Boolean,
     description: 'Filter only volumes in stock',
   })
+  @ApiQuery({
+    name: 'authors',
+    required: false,
+    type: [String],
+    description: 'Filter by authors (array of author names)',
+    example: ['jiji', 'كوجي أوزاكي', 'كومادا'],
+  })
+  @ApiQuery({
+    name: 'categories',
+    required: false,
+    type: [String],
+    description: 'Filter by category IDs (array of category IDs)',
+    example: ['cm0x1y2z3...', 'cm0a1b2c3...'],
+  })
   @ApiResponse({
     status: 200,
     description: 'Volumes retrieved successfully',
@@ -200,11 +248,19 @@ export class VolumeController {
     @Query('minPrice') minPrice?: string,
     @Query('maxPrice') maxPrice?: string,
     @Query('inStock') inStock?: boolean,
+    @Query('authors') authors?: string | string[],
+    @Query('categories') categories?: string | string[],
   ): Promise<VolumeApiResponseDto<PaginatedResponse<VolumeListItemDto>>> {
     try {
       // Parse numeric parameters safely
       const parsedMinPrice = minPrice && !isNaN(parseFloat(minPrice)) ? parseFloat(minPrice) : undefined;
       const parsedMaxPrice = maxPrice && !isNaN(parseFloat(maxPrice)) ? parseFloat(maxPrice) : undefined;
+      
+      // Handle authors parameter - can be a single string or array of strings
+      const authorsArray = authors ? (Array.isArray(authors) ? authors : [authors]) : undefined;
+      
+      // Handle categories parameter - can be a single string or array of strings
+      const categoriesArray = categories ? (Array.isArray(categories) ? categories : [categories]) : undefined;
       
       const volumes = await this.volumeService.findAll(
         page,
@@ -214,7 +270,10 @@ export class VolumeController {
         parsedMinPrice,
         parsedMaxPrice,
         inStock,
+        authorsArray,
+        categoriesArray
       );
+      
       return {
         success: true,
         message: 'Volumes retrieved successfully',
@@ -564,4 +623,6 @@ export class VolumeController {
       };
     }
   }
+
+  
 }
