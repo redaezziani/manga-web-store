@@ -1,13 +1,21 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/database';
 import { CreateOrderDto } from './dto';
 import { OrderStatus } from '@prisma/client';
-
+import { LocalExcelService } from 'src/integration/local-excel.service';
 @Injectable()
 export class OrderService {
   private readonly logger = new Logger(OrderService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly localExcelService: LocalExcelService,
+  ) {}
 
   async createOrder(userId: string, createOrderDto: CreateOrderDto) {
     const cart = await this.prisma.cart.findUnique({
@@ -15,7 +23,11 @@ export class OrderService {
       include: {
         cartItems: {
           include: {
-            volume: true,
+            volume: {
+              include: {
+                manga: true, // Include the manga details
+              },
+            },
           },
         },
       },
@@ -35,18 +47,20 @@ export class OrderService {
     for (const item of cart.cartItems) {
       if (item.quantity > item.volume.stock) {
         throw new BadRequestException(
-          `Volume "${item.volume.id}" does not have enough stock. Available: ${item.volume.stock}, Requested: ${item.quantity}`
+          `Volume "${item.volume.id}" does not have enough stock. Available: ${item.volume.stock}, Requested: ${item.quantity}`,
         );
       }
     }
 
     const totalAmount = parseFloat(
-      cart.cartItems.reduce((total, item) => {
-        const price = item.volume.price;
-        const discount = item.volume.discount || 0;
-        const final = price * (1 - discount);
-        return total + final * item.quantity;
-      }, 0).toFixed(2)
+      cart.cartItems
+        .reduce((total, item) => {
+          const price = item.volume.price;
+          const discount = item.volume.discount || 0;
+          const final = price * (1 - discount);
+          return total + final * item.quantity;
+        }, 0)
+        .toFixed(2),
     );
 
     // Create the order and items
@@ -63,14 +77,22 @@ export class OrderService {
           create: cart.cartItems.map((item) => ({
             volumeId: item.volume.id,
             quantity: item.quantity,
-            unitPrice: parseFloat((item.volume.price * (1 - (item.volume.discount || 0))).toFixed(2)),
+            unitPrice: parseFloat(
+              (item.volume.price * (1 - (item.volume.discount || 0))).toFixed(
+                2,
+              ),
+            ),
           })),
         },
       },
       include: {
         orderItems: {
           include: {
-            volume: true,
+            volume: {
+              include: {
+                manga: true,
+              },
+            },
           },
         },
       },
@@ -96,7 +118,41 @@ export class OrderService {
       },
     });
 
-    this.logger.log(`Order ${order.id} created, stock updated, and cart cleared for user ${userId}`);
+    // Fetch user details
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        displayName: true,
+        firstName: true,
+        lastName: true,
+      },
+    });
+    if (!user) {
+      this.logger.error(`User not found for ID ${userId}`);
+      throw new NotFoundException('User not found');
+    }
+
+    await this.localExcelService.appendOrder({
+      userName:
+        user.displayName ||
+        `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() ||
+        'Unknown',
+      totalAmount: order.totalAmount,
+      status: order.status,
+      city: order.city,
+      phoneNumber: order.phoneNumber,
+      placedAt: order.placedAt,
+      items: order.orderItems.map((item) => ({
+        title: item.volume.manga.title,
+        volumeNumber: item.volume.volumeNumber,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        total: parseFloat((item.unitPrice * item.quantity).toFixed(2)),
+      })),
+    });
+    this.logger.log(
+      `Order ${order.id} created successfully for user ${userId}`,
+    );
 
     return {
       success: true,

@@ -11,6 +11,7 @@ import { AuthModule } from './auth/auth.module';
 import { CartModule } from './cart/cart.module';
 import { WishlistModule } from './wishlist/wishlist.module';
 import { OrderModule } from './order/order.module';
+import { IntegrationModule } from './integration/integration.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { OrderModule } from './order/order.module';
     MangaModule,
     VolumeModule,
     OrderModule,
+    IntegrationModule,
   ],
   controllers: [AppController],
 })
