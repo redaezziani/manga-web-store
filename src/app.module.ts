@@ -10,6 +10,7 @@ import { SmtpModule } from './smtp/smtp.module';
 import { AuthModule } from './auth/auth.module';
 import { CartModule } from './cart/cart.module';
 import { WishlistModule } from './wishlist/wishlist.module';
+import { OrderModule } from './order/order.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { WishlistModule } from './wishlist/wishlist.module';
     WishlistModule,
     MangaModule,
     VolumeModule,
+    OrderModule,
   ],
   controllers: [AppController],
 })

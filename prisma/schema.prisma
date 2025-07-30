@@ -51,6 +51,8 @@ model Volume {
 
   previewImages PreviewImage[]
   cartItems     CartItem[]
+
+  OrderItem OrderItem[]
 }
 
 model PreviewImage {
@@ -103,6 +105,7 @@ model User {
   reviews            Review[]
 
   @@map("users")
+  Order Order[]
 }
 
 model EmailVerification {
@@ -231,3 +234,44 @@ model Review {
   @@map("reviews")
 }
 
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  FAILED
+  RETURNED
+}
+
+model Order {
+  id               String        @id @default(cuid())
+  userId           String
+  totalAmount      Float
+  isPaid           Boolean       @default(false) 
+  status           OrderStatus   @default(PENDING)
+  shippingAddress  String
+  city             String
+  phoneNumber      String
+  placedAt         DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderItems       OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id         String   @id @default(cuid())
+  orderId    String
+  volumeId   String
+  quantity   Int      @default(1)
+  unitPrice  Float    // store price at time of purchase
+  createdAt  DateTime @default(now())
+
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  volume     Volume   @relation(fields: [volumeId], references: [id], onDelete: Cascade)
+
+  @@map("order_items")
+}
