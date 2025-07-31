@@ -134,6 +134,7 @@ export class WishlistService {
       const wishlistItems = await this.prisma.wishlist.findMany({
         where: { userId },
         include: {
+          
           manga: {
             include: {
               categories: {
@@ -146,7 +147,7 @@ export class WishlistService {
               volumes: {
                 select: {
                   price: true,
-                  coverImage: true,
+                   coverImage: true,
                 }
               }
             }
@@ -163,6 +164,8 @@ export class WishlistService {
         items,
         totalCount: items.length
       };
+
+      console.log(response);
 
       return {
         success: true,
@@ -247,7 +250,7 @@ export class WishlistService {
       title: manga.title,
       author: manga.author,
       description: manga.description,
-      coverImage: manga.coverImage,
+      coverImage: manga.volumes?.[0]?.coverImage || manga.coverImage,
       isAvailable: manga.isAvailable,
       volumeCount,
       minPrice,
