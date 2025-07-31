@@ -29,13 +29,19 @@ import {
   ApiConsumes,
 } from '@nestjs/swagger';
 import { VolumeService } from './volume.service';
-import { CreateVolumeDto, UpdateVolumeDto, AddPreviewImageDto, CreateVolumeData, UpdateVolumeData } from './dto/volume.dto';
-import { 
-  VolumeResponseDto, 
-  VolumeListItemDto, 
+import {
+  CreateVolumeDto,
+  UpdateVolumeDto,
+  AddPreviewImageDto,
+  CreateVolumeData,
+  UpdateVolumeData,
+} from './dto/volume.dto';
+import {
+  VolumeResponseDto,
+  VolumeListItemDto,
   VolumeApiResponseDto,
   PreviewImageDto,
-  FilterDataResponseDto
+  FilterDataResponseDto,
 } from './dto/volume-response.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PaginatedResponse } from '../common/utils/pagination.utils';
@@ -48,45 +54,61 @@ export class VolumeController {
     private readonly volumeService: VolumeService,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
+   @Get('most-ordered')
+  async getMostOrderedVolumes(
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ): Promise<VolumeApiResponseDto<VolumeListItemDto[]>> {
+    try {
+      const mostOrderedVolumes = await this.volumeService.getMostOrderedVolumes(
+        limit,
+      );
+      return {
+        success: true,
+        message: 'Most ordered volumes retrieved successfully',
+        data: mostOrderedVolumes,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message,
+        data: null,
+      };
+    }
+  }
 
+  
+  @Get('low-stock')
+  async getLowStockVolumes(
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ): Promise<VolumeApiResponseDto<VolumeListItemDto[]>> {
+    try {
+      const lowStockVolumes = await this.volumeService.getLowStockVolumes(limit);
+      return {
+        success: true,
+        message: 'Low stock volumes retrieved successfully',
+        data: lowStockVolumes,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message,
+        data: null,
+      };
+    }
+  }
   @Post()
-//   @UseGuards(JwtAuthGuard)
-//   @ApiBearerAuth()
+  //   @UseGuards(JwtAuthGuard)
+  //   @ApiBearerAuth()
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({
-    summary: 'Create volume',
-    description: 'Create a new manga volume with optional cover image (Admin only)',
-  })
-  @ApiBody({ type: CreateVolumeDto })
-  @ApiResponse({
-    status: 201,
-    description: 'Volume created successfully',
-    type: VolumeResponseDto,
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad request - Invalid data',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Manga not found',
-  })
-  @ApiResponse({
-    status: 409,
-    description: 'Volume number already exists for this manga',
-  })
-  @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(FileInterceptor('coverImageFile'))
   async create(
     @Body() createVolumeDto: CreateVolumeDto,
     @UploadedFile() coverImage?: Express.Multer.File,
   ): Promise<VolumeApiResponseDto<VolumeResponseDto>> {
     try {
-      
-      
       // Prepare data for service with cover image URL if provided
       const volumeData: CreateVolumeData = { ...createVolumeDto };
-      
+
       // Upload cover image if provided
       if (coverImage) {
         const uploadResult = await this.cloudinaryService.uploadFile(
@@ -114,24 +136,10 @@ export class VolumeController {
   }
 
   @Get('filter-data')
-  @ApiOperation({
-    summary: 'Get filter data',
-    description: 'Get categories and authors data for filtering volumes',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Filter data retrieved successfully',
-    type: FilterDataResponseDto,
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Failed to retrieve filter data',
-  })
-  @HttpCode(HttpStatus.OK)
   async getFilterData(): Promise<VolumeApiResponseDto<FilterDataResponseDto>> {
     try {
       const filterData = await this.volumeService.getFilterData();
-      
+
       return {
         success: true,
         message: 'Filter data retrieved successfully',
@@ -147,99 +155,6 @@ export class VolumeController {
   }
 
   @Get()
-  @ApiOperation({
-    summary: 'Get all volumes',
-    description: 'Get a paginated list of manga volumes with optional filtering',
-  })
-  @ApiQuery({
-    name: 'page',
-    required: false,
-    type: Number,
-    description: 'Page number',
-    example: 1,
-  })
-  @ApiQuery({
-    name: 'limit',
-    required: false,
-    type: Number,
-    description: 'Items per page',
-    example: 20,
-  })
-  @ApiQuery({
-    name: 'mangaId',
-    required: false,
-    type: String,
-    description: 'Filter by manga ID',
-  })
-  @ApiQuery({
-    name: 'isAvailable',
-    required: false,
-    type: Boolean,
-    description: 'Filter by availability',
-  })
-  @ApiQuery({
-    name: 'minPrice',
-    required: false,
-    type: Number,
-    description: 'Minimum price filter',
-  })
-  @ApiQuery({
-    name: 'maxPrice',
-    required: false,
-    type: Number,
-    description: 'Maximum price filter',
-  })
-  @ApiQuery({
-    name: 'inStock',
-    required: false,
-    type: Boolean,
-    description: 'Filter only volumes in stock',
-  })
-  @ApiQuery({
-    name: 'authors',
-    required: false,
-    type: [String],
-    description: 'Filter by authors (array of author names)',
-    example: ['jiji', 'كوجي أوزاكي', 'كومادا'],
-  })
-  @ApiQuery({
-    name: 'categories',
-    required: false,
-    type: [String],
-    description: 'Filter by category IDs (array of category IDs)',
-    example: ['cm0x1y2z3...', 'cm0a1b2c3...'],
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Volumes retrieved successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean', example: true },
-        message: { type: 'string', example: 'Volumes retrieved successfully' },
-        data: {
-          type: 'object',
-          properties: {
-            data: {
-              type: 'array',
-              items: { $ref: '#/components/schemas/VolumeListItemDto' },
-            },
-            meta: {
-              type: 'object',
-              properties: {
-                currentPage: { type: 'number', example: 1 },
-                itemsPerPage: { type: 'number', example: 20 },
-                totalItems: { type: 'number', example: 100 },
-                totalPages: { type: 'number', example: 5 },
-                hasNextPage: { type: 'boolean', example: true },
-                hasPreviousPage: { type: 'boolean', example: false },
-              },
-            },
-          },
-        },
-      },
-    },
-  })
   async findAll(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
@@ -253,15 +168,29 @@ export class VolumeController {
   ): Promise<VolumeApiResponseDto<PaginatedResponse<VolumeListItemDto>>> {
     try {
       // Parse numeric parameters safely
-      const parsedMinPrice = minPrice && !isNaN(parseFloat(minPrice)) ? parseFloat(minPrice) : undefined;
-      const parsedMaxPrice = maxPrice && !isNaN(parseFloat(maxPrice)) ? parseFloat(maxPrice) : undefined;
-      
+      const parsedMinPrice =
+        minPrice && !isNaN(parseFloat(minPrice))
+          ? parseFloat(minPrice)
+          : undefined;
+      const parsedMaxPrice =
+        maxPrice && !isNaN(parseFloat(maxPrice))
+          ? parseFloat(maxPrice)
+          : undefined;
+
       // Handle authors parameter - can be a single string or array of strings
-      const authorsArray = authors ? (Array.isArray(authors) ? authors : [authors]) : undefined;
-      
+      const authorsArray = authors
+        ? Array.isArray(authors)
+          ? authors
+          : [authors]
+        : undefined;
+
       // Handle categories parameter - can be a single string or array of strings
-      const categoriesArray = categories ? (Array.isArray(categories) ? categories : [categories]) : undefined;
-      
+      const categoriesArray = categories
+        ? Array.isArray(categories)
+          ? categories
+          : [categories]
+        : undefined;
+
       const volumes = await this.volumeService.findAll(
         page,
         limit,
@@ -271,9 +200,9 @@ export class VolumeController {
         parsedMaxPrice,
         inStock,
         authorsArray,
-        categoriesArray
+        categoriesArray,
       );
-      
+
       return {
         success: true,
         message: 'Volumes retrieved successfully',
@@ -289,25 +218,9 @@ export class VolumeController {
   }
 
   @Get('manga/:mangaId')
-  @ApiOperation({
-    summary: 'Get volumes by manga',
-    description: 'Get all volumes for a specific manga',
-  })
-  @ApiParam({
-    name: 'mangaId',
-    description: 'Manga ID',
-    example: 'cm0x1y2z3...',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Volumes retrieved successfully',
-    type: [VolumeListItemDto],
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Manga not found',
-  })
-  async findByManga(@Param('mangaId') mangaId: string): Promise<VolumeApiResponseDto<VolumeListItemDto[]>> {
+  async findByManga(
+    @Param('mangaId') mangaId: string,
+  ): Promise<VolumeApiResponseDto<VolumeListItemDto[]>> {
     try {
       const volumes = await this.volumeService.findByManga(mangaId);
       return {
@@ -325,25 +238,9 @@ export class VolumeController {
   }
 
   @Get(':id')
-  @ApiOperation({
-    summary: 'Get volume by ID',
-    description: 'Get detailed information about a specific volume',
-  })
-  @ApiParam({
-    name: 'id',
-    description: 'Volume ID',
-    example: 'cm0x1y2z3...',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Volume retrieved successfully',
-    type: VolumeResponseDto,
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Volume not found',
-  })
-  async findOne(@Param('id') id: string): Promise<VolumeApiResponseDto<VolumeResponseDto>> {
+  async findOne(
+    @Param('id') id: string,
+  ): Promise<VolumeApiResponseDto<VolumeResponseDto>> {
     try {
       const volume = await this.volumeService.findOne(id);
       return {
@@ -396,7 +293,7 @@ export class VolumeController {
     try {
       // Prepare data for service with cover image URL if provided
       const volumeData: UpdateVolumeData = { ...updateVolumeDto };
-      
+
       // Upload cover image if provided
       if (coverImage) {
         const uploadResult = await this.cloudinaryService.uploadFile(
@@ -460,7 +357,9 @@ export class VolumeController {
     status: 404,
     description: 'Volume not found',
   })
-  async remove(@Param('id') id: string): Promise<VolumeApiResponseDto<{ message: string }>> {
+  async remove(
+    @Param('id') id: string,
+  ): Promise<VolumeApiResponseDto<{ message: string }>> {
     try {
       const result = await this.volumeService.remove(id);
       return {
@@ -505,7 +404,10 @@ export class VolumeController {
     @Body() addPreviewImageDto: AddPreviewImageDto,
   ): Promise<VolumeApiResponseDto<PreviewImageDto>> {
     try {
-      const previewImage = await this.volumeService.addPreviewImage(volumeId, addPreviewImageDto);
+      const previewImage = await this.volumeService.addPreviewImage(
+        volumeId,
+        addPreviewImageDto,
+      );
       return {
         success: true,
         message: 'Preview image added successfully',
@@ -544,11 +446,17 @@ export class VolumeController {
       type: 'object',
       properties: {
         success: { type: 'boolean', example: true },
-        message: { type: 'string', example: 'Preview image removed successfully' },
+        message: {
+          type: 'string',
+          example: 'Preview image removed successfully',
+        },
         data: {
           type: 'object',
           properties: {
-            message: { type: 'string', example: 'Preview image removed successfully' },
+            message: {
+              type: 'string',
+              example: 'Preview image removed successfully',
+            },
           },
         },
       },
@@ -563,7 +471,10 @@ export class VolumeController {
     @Param('previewImageId') previewImageId: string,
   ): Promise<VolumeApiResponseDto<{ message: string }>> {
     try {
-      const result = await this.volumeService.removePreviewImage(volumeId, previewImageId);
+      const result = await this.volumeService.removePreviewImage(
+        volumeId,
+        previewImageId,
+      );
       return {
         success: true,
         message: 'Preview image removed successfully',
@@ -579,37 +490,16 @@ export class VolumeController {
   }
 
   @Get(':id/related')
-  @ApiOperation({
-    summary: 'Get related volumes',
-    description: 'Get volumes from different manga that are related to the specified volume (recommendations)',
-  })
-  @ApiParam({
-    name: 'id',
-    description: 'Volume ID',
-    example: 'cm0x1y2z3...',
-  })
-  @ApiQuery({
-    name: 'limit',
-    required: false,
-    type: Number,
-    description: 'Number of related volumes to return',
-    example: 10,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Related volumes retrieved successfully',
-    type: [VolumeListItemDto],
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Volume not found',
-  })
+  
   async getRelatedVolumes(
     @Param('id') volumeId: string,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
   ): Promise<VolumeApiResponseDto<VolumeListItemDto[]>> {
     try {
-      const relatedVolumes = await this.volumeService.getRelatedVolumes(volumeId, limit);
+      const relatedVolumes = await this.volumeService.getRelatedVolumes(
+        volumeId,
+        limit,
+      );
       return {
         success: true,
         message: 'Related volumes retrieved successfully',
@@ -624,5 +514,5 @@ export class VolumeController {
     }
   }
 
-  
+ 
 }

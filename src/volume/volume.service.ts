@@ -3,11 +3,21 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
-  Logger
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
-import { CreateVolumeDto, UpdateVolumeDto, AddPreviewImageDto, CreateVolumeData, UpdateVolumeData } from './dto/volume.dto';
-import { VolumeResponseDto, VolumeListItemDto, PreviewImageDto } from './dto/volume-response.dto';
+import {
+  CreateVolumeDto,
+  UpdateVolumeDto,
+  AddPreviewImageDto,
+  CreateVolumeData,
+  UpdateVolumeData,
+} from './dto/volume.dto';
+import {
+  VolumeResponseDto,
+  VolumeListItemDto,
+  PreviewImageDto,
+} from './dto/volume-response.dto';
 import { PaginatedResponse } from '../common/utils/pagination.utils';
 
 @Injectable()
@@ -20,7 +30,7 @@ export class VolumeService {
     try {
       // Check if manga exists
       const manga = await this.prisma.manga.findUnique({
-        where: { id: createVolumeDto.mangaId }
+        where: { id: createVolumeDto.mangaId },
       });
 
       if (!manga) {
@@ -31,12 +41,14 @@ export class VolumeService {
       const existingVolume = await this.prisma.volume.findFirst({
         where: {
           mangaId: createVolumeDto.mangaId,
-          volumeNumber: createVolumeDto.volumeNumber
-        }
+          volumeNumber: createVolumeDto.volumeNumber,
+        },
       });
 
       if (existingVolume) {
-        throw new ConflictException(`Volume ${createVolumeDto.volumeNumber} already exists for this manga`);
+        throw new ConflictException(
+          `Volume ${createVolumeDto.volumeNumber} already exists for this manga`,
+        );
       }
 
       // Create volume
@@ -58,17 +70,20 @@ export class VolumeService {
               author: true,
               coverImage: true,
               isAvailable: true,
-            }
+            },
           },
-          previewImages: true
-        }
+          previewImages: true,
+        },
       });
 
       this.logger.log(`Volume created: ${volume.id} for manga ${manga.title}`);
 
       return this.transformVolumeResponse(volume);
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof ConflictException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof ConflictException
+      ) {
         throw error;
       }
       this.logger.error('Failed to create volume:', error);
@@ -85,22 +100,22 @@ export class VolumeService {
     maxPrice?: number,
     inStock?: boolean,
     authors?: string[],
-    categories?: string[]
+    categories?: string[],
   ): Promise<PaginatedResponse<VolumeListItemDto>> {
     try {
       const skip = (page - 1) * limit;
-      
+
       const where: any = {};
-      
+
       if (mangaId) {
         where.mangaId = mangaId;
       }
-      
+
       if (isAvailable !== undefined) {
         where.isAvailable = isAvailable;
         where.manga = { isAvailable: isAvailable };
       }
-      
+
       if (minPrice !== undefined || maxPrice !== undefined) {
         where.price = {};
         if (minPrice !== undefined && !isNaN(minPrice) && minPrice >= 0) {
@@ -109,13 +124,13 @@ export class VolumeService {
         if (maxPrice !== undefined && !isNaN(maxPrice) && maxPrice >= 0) {
           where.price.lte = maxPrice;
         }
-        
+
         // If no valid price filters, remove the price condition
         if (Object.keys(where.price).length === 0) {
           delete where.price;
         }
       }
-      
+
       if (inStock) {
         where.stock = { gt: 0 };
       }
@@ -126,7 +141,7 @@ export class VolumeService {
           where.manga = {};
         }
         where.manga.author = {
-          in: authors
+          in: authors,
         };
       }
 
@@ -138,9 +153,9 @@ export class VolumeService {
         where.manga.categories = {
           some: {
             id: {
-              in: categories
-            }
-          }
+              in: categories,
+            },
+          },
         };
       }
 
@@ -149,10 +164,7 @@ export class VolumeService {
           where,
           skip,
           take: limit,
-          orderBy: [
-            { manga: { title: 'asc' } },
-            { volumeNumber: 'asc' }
-          ],
+          orderBy: [{ manga: { title: 'asc' } }, { volumeNumber: 'asc' }],
           include: {
             manga: {
               select: {
@@ -162,19 +174,21 @@ export class VolumeService {
                 coverImage: true,
                 isAvailable: true,
                 description: true,
-              }
+              },
             },
             previewImages: {
               take: 1,
-              orderBy: { id: 'asc' }
-            }
-          }
+              orderBy: { id: 'asc' },
+            },
+          },
         }),
-        this.prisma.volume.count({ where })
+        this.prisma.volume.count({ where }),
       ]);
 
-      const items = volumes.map(volume => this.transformVolumeListItem(volume));
-      
+      const items = volumes.map((volume) =>
+        this.transformVolumeListItem(volume),
+      );
+
       const totalPages = Math.ceil(totalCount / limit);
 
       return {
@@ -186,7 +200,7 @@ export class VolumeService {
           totalPages,
           hasNextPage: page < totalPages,
           hasPreviousPage: page > 1,
-        }
+        },
       };
     } catch (error) {
       this.logger.error('Failed to fetch volumes:', error);
@@ -208,11 +222,10 @@ export class VolumeService {
               isAvailable: true,
               categories: true,
               description: true,
-              
-            }
+            },
           },
-          previewImages: true
-        }
+          previewImages: true,
+        },
       });
 
       if (!volume) {
@@ -233,7 +246,7 @@ export class VolumeService {
     try {
       // Check if manga exists
       const manga = await this.prisma.manga.findUnique({
-        where: { id: mangaId }
+        where: { id: mangaId },
       });
 
       if (!manga) {
@@ -251,16 +264,16 @@ export class VolumeService {
               author: true,
               coverImage: true,
               isAvailable: true,
-            }
+            },
           },
           previewImages: {
             take: 1,
-            orderBy: { id: 'asc' }
-          }
-        }
+            orderBy: { id: 'asc' },
+          },
+        },
       });
 
-      return volumes.map(volume => this.transformVolumeListItem(volume));
+      return volumes.map((volume) => this.transformVolumeListItem(volume));
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
@@ -270,11 +283,14 @@ export class VolumeService {
     }
   }
 
-  async update(id: string, updateVolumeDto: UpdateVolumeData): Promise<VolumeResponseDto> {
+  async update(
+    id: string,
+    updateVolumeDto: UpdateVolumeData,
+  ): Promise<VolumeResponseDto> {
     try {
       // Check if volume exists
       const existingVolume = await this.prisma.volume.findUnique({
-        where: { id }
+        where: { id },
       });
 
       if (!existingVolume) {
@@ -287,12 +303,14 @@ export class VolumeService {
           where: {
             mangaId: existingVolume.mangaId,
             volumeNumber: updateVolumeDto.volumeNumber,
-            id: { not: id }
-          }
+            id: { not: id },
+          },
         });
 
         if (conflictingVolume) {
-          throw new ConflictException(`Volume ${updateVolumeDto.volumeNumber} already exists for this manga`);
+          throw new ConflictException(
+            `Volume ${updateVolumeDto.volumeNumber} already exists for this manga`,
+          );
         }
       }
 
@@ -308,17 +326,20 @@ export class VolumeService {
               author: true,
               coverImage: true,
               isAvailable: true,
-            }
+            },
           },
-          previewImages: true
-        }
+          previewImages: true,
+        },
       });
 
       this.logger.log(`Volume updated: ${volume.id}`);
 
       return this.transformVolumeResponse(volume);
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof ConflictException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof ConflictException
+      ) {
         throw error;
       }
       this.logger.error('Failed to update volume:', error);
@@ -331,8 +352,8 @@ export class VolumeService {
       const volume = await this.prisma.volume.findUnique({
         where: { id },
         include: {
-          cartItems: true
-        }
+          cartItems: true,
+        },
       });
 
       if (!volume) {
@@ -341,19 +362,24 @@ export class VolumeService {
 
       // Check if volume is in any cart
       if (volume.cartItems.length > 0) {
-        throw new BadRequestException('Cannot delete volume that exists in shopping carts');
+        throw new BadRequestException(
+          'Cannot delete volume that exists in shopping carts',
+        );
       }
 
       // Delete volume (this will also delete preview images due to cascade)
       await this.prisma.volume.delete({
-        where: { id }
+        where: { id },
       });
 
       this.logger.log(`Volume deleted: ${id}`);
 
       return { message: 'Volume deleted successfully' };
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
       this.logger.error('Failed to delete volume:', error);
@@ -361,11 +387,14 @@ export class VolumeService {
     }
   }
 
-  async addPreviewImage(volumeId: string, addPreviewImageDto: AddPreviewImageDto): Promise<PreviewImageDto> {
+  async addPreviewImage(
+    volumeId: string,
+    addPreviewImageDto: AddPreviewImageDto,
+  ): Promise<PreviewImageDto> {
     try {
       // Check if volume exists
       const volume = await this.prisma.volume.findUnique({
-        where: { id: volumeId }
+        where: { id: volumeId },
       });
 
       if (!volume) {
@@ -375,15 +404,17 @@ export class VolumeService {
       const previewImage = await this.prisma.previewImage.create({
         data: {
           volumeId,
-          url: addPreviewImageDto.url
-        }
+          url: addPreviewImageDto.url,
+        },
       });
 
-      this.logger.log(`Preview image added to volume ${volumeId}: ${previewImage.id}`);
+      this.logger.log(
+        `Preview image added to volume ${volumeId}: ${previewImage.id}`,
+      );
 
       return {
         id: previewImage.id,
-        url: previewImage.url
+        url: previewImage.url,
       };
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -394,14 +425,17 @@ export class VolumeService {
     }
   }
 
-  async removePreviewImage(volumeId: string, previewImageId: string): Promise<{ message: string }> {
+  async removePreviewImage(
+    volumeId: string,
+    previewImageId: string,
+  ): Promise<{ message: string }> {
     try {
       // Check if preview image exists and belongs to the volume
       const previewImage = await this.prisma.previewImage.findFirst({
         where: {
           id: previewImageId,
-          volumeId: volumeId
-        }
+          volumeId: volumeId,
+        },
       });
 
       if (!previewImage) {
@@ -409,7 +443,7 @@ export class VolumeService {
       }
 
       await this.prisma.previewImage.delete({
-        where: { id: previewImageId }
+        where: { id: previewImageId },
       });
 
       this.logger.log(`Preview image removed: ${previewImageId}`);
@@ -424,7 +458,10 @@ export class VolumeService {
     }
   }
 
-  async getRelatedVolumes(volumeId: string, limit: number = 10): Promise<VolumeListItemDto[]> {
+  async getRelatedVolumes(
+    volumeId: string,
+    limit: number = 10,
+  ): Promise<VolumeListItemDto[]> {
     try {
       // First, find the volume to get its manga ID and categories
       const volume = await this.prisma.volume.findUnique({
@@ -432,10 +469,10 @@ export class VolumeService {
         include: {
           manga: {
             include: {
-              categories: true
-            }
-          }
-        }
+              categories: true,
+            },
+          },
+        },
       });
 
       if (!volume) {
@@ -443,7 +480,7 @@ export class VolumeService {
       }
 
       // Get category IDs from the volume's manga
-      const categoryIds = volume.manga.categories.map(cat => cat.id);
+      const categoryIds = volume.manga.categories.map((cat) => cat.id);
 
       // Find related volumes from different manga with similar categories
       const relatedVolumes = await this.prisma.volume.findMany({
@@ -455,30 +492,32 @@ export class VolumeService {
             {
               OR: [
                 // Volumes from manga with similar categories
-                categoryIds.length > 0 ? {
-                  manga: {
-                    categories: {
-                      some: {
-                        id: { in: categoryIds }
-                      }
+                categoryIds.length > 0
+                  ? {
+                      manga: {
+                        categories: {
+                          some: {
+                            id: { in: categoryIds },
+                          },
+                        },
+                      },
                     }
-                  }
-                } : {},
+                  : {},
                 // Or similar price range
                 {
                   price: {
                     gte: volume.price * 0.7, // 30% lower
-                    lte: volume.price * 1.3   // 30% higher
-                  }
-                }
-              ]
-            }
-          ]
+                    lte: volume.price * 1.3, // 30% higher
+                  },
+                },
+              ],
+            },
+          ],
         },
         take: limit,
         orderBy: [
           // Prioritize volumes with more matching categories
-          { createdAt: 'desc' }
+          { createdAt: 'desc' },
         ],
         include: {
           manga: {
@@ -489,18 +528,22 @@ export class VolumeService {
               coverImage: true,
               isAvailable: true,
               description: true,
-            }
+            },
           },
           previewImages: {
             take: 1,
-            orderBy: { id: 'asc' }
-          }
-        }
+            orderBy: { id: 'asc' },
+          },
+        },
       });
 
-      this.logger.log(`Found ${relatedVolumes.length} related volumes for volume ${volumeId}`);
+      this.logger.log(
+        `Found ${relatedVolumes.length} related volumes for volume ${volumeId}`,
+      );
 
-      return relatedVolumes.map(volume => this.transformVolumeListItem(volume));
+      return relatedVolumes.map((volume) =>
+        this.transformVolumeListItem(volume),
+      );
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
@@ -510,7 +553,15 @@ export class VolumeService {
     }
   }
 
-  async getFilterData(): Promise<{ categories: Array<{ id: string; name: string; nameAr: string; slug: string }>, authors: string[] }> {
+  async getFilterData(): Promise<{
+    categories: Array<{
+      id: string;
+      name: string;
+      nameAr: string;
+      slug: string;
+    }>;
+    authors: string[];
+  }> {
     try {
       // Get all categories that have mangas with available volumes
       const categories = await this.prisma.category.findMany({
@@ -519,22 +570,22 @@ export class VolumeService {
             some: {
               volumes: {
                 some: {
-                  isAvailable: true
-                }
+                  isAvailable: true,
+                },
               },
-              isAvailable: true
-            }
-          }
+              isAvailable: true,
+            },
+          },
         },
         select: {
           id: true,
           name: true,
           nameAr: true,
-          slug: true
+          slug: true,
         },
         orderBy: {
-          name: 'asc'
-        }
+          name: 'asc',
+        },
       });
 
       // Get all unique authors from mangas that have available volumes
@@ -542,31 +593,33 @@ export class VolumeService {
         where: {
           volumes: {
             some: {
-              isAvailable: true
-            }
+              isAvailable: true,
+            },
           },
           isAvailable: true,
           author: {
-            not: null
-          }
+            not: null,
+          },
         },
         select: {
-          author: true
+          author: true,
         },
-        distinct: ['author']
+        distinct: ['author'],
       });
 
       // Extract unique authors and filter out null values
       const authors = authorsData
-        .map(manga => manga.author)
+        .map((manga) => manga.author)
         .filter((author): author is string => author !== null)
         .sort();
 
-      this.logger.log(`Filter data retrieved: ${categories.length} categories, ${authors.length} authors`);
+      this.logger.log(
+        `Filter data retrieved: ${categories.length} categories, ${authors.length} authors`,
+      );
 
       return {
         categories,
-        authors
+        authors,
       };
     } catch (error) {
       this.logger.error('Failed to get filter data:', error);
@@ -576,7 +629,7 @@ export class VolumeService {
 
   private transformVolumeResponse(volume: any): VolumeResponseDto {
     const finalPrice = volume.price * (1 - volume.discount);
-    
+
     return {
       id: volume.id,
       volumeNumber: volume.volumeNumber,
@@ -589,16 +642,16 @@ export class VolumeService {
       createdAt: volume.createdAt,
       updatedAt: volume.updatedAt,
       manga: volume.manga,
-      previewImages: volume.previewImages.map(img => ({
+      previewImages: volume.previewImages.map((img) => ({
         id: img.id,
-        url: img.url
-      }))
+        url: img.url,
+      })),
     };
   }
 
   private transformVolumeListItem(volume: any): VolumeListItemDto {
     const finalPrice = volume.price * (1 - volume.discount);
-    
+
     return {
       id: volume.id,
       volumeNumber: volume.volumeNumber,
@@ -609,7 +662,114 @@ export class VolumeService {
       coverImage: volume.coverImage,
       isAvailable: volume.isAvailable,
       manga: volume.manga,
-      firstPreviewImage: volume.previewImages.length > 0 ? volume.previewImages[0].url : undefined
+      firstPreviewImage:
+        volume.previewImages.length > 0
+          ? volume.previewImages[0].url
+          : undefined,
     };
+  }
+  async getMostOrderedVolumes(
+    limit: number = 10,
+  ): Promise<VolumeListItemDto[]> {
+    try {
+      // Step 1: Aggregate order count per volume
+      const mostOrdered = await this.prisma.orderItem.groupBy({
+        by: ['volumeId'],
+        _sum: { quantity: true },
+        orderBy: {
+          _sum: {
+            quantity: 'desc',
+          },
+        },
+        take: limit,
+      });
+
+      const volumeIds = mostOrdered.map((item) => item.volumeId);
+
+      if (volumeIds.length === 0) {
+        return [];
+      }
+
+      // Step 2: Fetch volumes and related data
+      const volumes = await this.prisma.volume.findMany({
+        where: {
+          id: {
+            in: volumeIds,
+          },
+        },
+        include: {
+          manga: {
+            select: {
+              id: true,
+              title: true,
+              author: true,
+              coverImage: true,
+              isAvailable: true,
+              description: true,
+            },
+          },
+          previewImages: {
+            take: 1,
+            orderBy: { id: 'asc' },
+          },
+        },
+      });
+
+      // Step 3: Maintain the same order as `mostOrdered`
+      const volumeMap = new Map(volumes.map((v) => [v.id, v]));
+      const orderedVolumes = volumeIds
+        .map((id) => volumeMap.get(id))
+        .filter((v): v is NonNullable<typeof v> => !!v);
+
+      // Step 4: Transform to VolumeListItemDto[]
+      return orderedVolumes.map((volume) =>
+        this.transformVolumeListItem(volume),
+      );
+    } catch (error) {
+      this.logger.error('Failed to get most ordered volumes:', error);
+      throw new BadRequestException('Failed to get most ordered volumes');
+    }
+  }
+
+  async getLowStockVolumes(limit: number = 10): Promise<VolumeListItemDto[]> {
+    try {
+      const volumes = await this.prisma.volume.findMany({
+        where: {
+          stock: {
+            lt: 10,
+            gt: 0, // optional: to exclude out-of-stock volumes entirely
+          },
+          isAvailable: true,
+          manga: {
+            isAvailable: true,
+          },
+        },
+        orderBy: {
+          stock: 'asc', // show lowest stock first
+        },
+        take: limit,
+        include: {
+          manga: {
+            select: {
+              id: true,
+              title: true,
+              author: true,
+              coverImage: true,
+              isAvailable: true,
+              description: true,
+            },
+          },
+          previewImages: {
+            take: 1,
+            orderBy: { id: 'asc' },
+          },
+        },
+      });
+
+      return volumes.map((volume) => this.transformVolumeListItem(volume));
+    } catch (error) {
+      this.logger.error('Failed to get low stock volumes:', error);
+      throw new BadRequestException('فشل تحميل المجلدات منخفضة المخزون');
+    }
   }
 }
