@@ -31,7 +31,6 @@ export class MangaService extends PaginationService {
         }
       });
 
-      console.log('Manga created successfully:', manga);
       return manga;
     } catch (error) {
       

@@ -116,7 +116,6 @@ export class VolumeController {
           'volume-covers',
         );
 
-        console.log('Volume cover image uploaded:', uploadResult);
         volumeData.coverImage = uploadResult.secure_url;
       }
 
@@ -301,7 +300,6 @@ export class VolumeController {
           'volume-covers',
         );
 
-        console.log('Volume cover image uploaded for update:', uploadResult);
         volumeData.coverImage = uploadResult.secure_url;
       }
 

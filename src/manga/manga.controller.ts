@@ -49,7 +49,6 @@ export class MangaController {
           'manga-covers',
         );
 
-        console.log('Cover image uploaded:', uploadResult);
         createMangaDto.coverImage = uploadResult.secure_url;
       }
 

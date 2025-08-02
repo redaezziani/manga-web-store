@@ -165,7 +165,6 @@ export class WishlistService {
         totalCount: items.length
       };
 
-      console.log(response);
 
       return {
         success: true,
